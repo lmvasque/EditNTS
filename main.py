@@ -195,7 +195,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--hidden', type=int, default=200)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--device', type=int, default=1,
+    parser.add_argument('--device', type=int, default=0,
                         help='select GPU')
 
     #train_file = '/media/vocab_data/yue/TS/editnet_data/%s/train.df.filtered.pos'%dataset
