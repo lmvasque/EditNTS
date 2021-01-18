@@ -117,7 +117,7 @@ class Vocab():
 
     def add_embedding(self, gloveFile="path_for_glove_embedding", embed_size=100):
         print("Loading Glove embeddings")
-        with open(gloveFile, 'r') as f:
+        with open(gloveFile, 'r', encoding="utf-8") as f:
             model = {}
             w_set = set(self.word_list)
             embedding_matrix = np.zeros(shape=(len(self.word_list), embed_size))
@@ -141,7 +141,7 @@ class POSvocab():
         self.i2w = {}
         self.count = 0
         self.embedding = None
-        with open(vocab_path+'postag_set.p','r') as f:
+        with open(vocab_path+'postag_set.p','rb') as f:
             # postag_set is from NLTK
             tagdict = pickle.load(f)
 
@@ -220,7 +220,7 @@ def prepare_batch(batch_df,vocab, max_length=100):
         """
     inp = batchify_stop(batch_df['comp_ids'], max_len=max_length)
     inp_pos = batchify_stop(batch_df['comp_pos_ids'], max_len=max_length)
-    inp_simp=batchify_start_stop(batch_df['simp_id'], max_len=max_length)
+    inp_simp=batchify_start_stop(batch_df['simp_ids'], max_len=max_length)
     # tgt = batchify_start_stop(batch_df['edit_ids'], max_len=max_length)  # edit ids has early stop
     tgt = batchify_start_stop(batch_df['new_edit_ids'], max_len=max_length)  # new_edit_ids do not do early stopping
     # I think new edit ids do not ave early stopping
