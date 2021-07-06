@@ -27,7 +27,7 @@ class Evaluator():
         self.loss = loss
         self.batch_size = batch_size
 
-    def evaluate(self, dataset, vocab, model, args, max_edit_steps=50):
+    def evaluate(self, dataset, vocab, model, args, max_edit_steps=50, dataset_name="", eval_dir=""):
         """ Evaluate a model on given dataset and return performance during training
         Args:
             dataset: an object of data.Dataset()
@@ -44,6 +44,7 @@ class Evaluator():
         ter = 0.
         sari_list = []
         sys_out=[]
+        sari_output = ["Score", "Complex", "Simple_Gen", "Simple_Ref"]
 
         print('Doing tokenized evaluation')
         for i, batch_df in dataset.batch_generator(batch_size=1, shuffle=False):
@@ -116,7 +117,14 @@ class Evaluator():
                     comp_string = ' '.join(example['comp_tokens'])
                     simp_string = ' '.join(example['simp_tokens'])
                     gen_string = ' '.join(greedy_decoded_tokens)
-                    sari_list.append(SARIsent(comp_string, gen_string, [simp_string]))
+                    score = SARIsent(comp_string, gen_string, [simp_string])
+                    sari_output.append([str(score), comp_string, gen_string, simp_string])
+                    sari_list.append(score)
+
+        if dataset_name != "":
+            with open("{}/{}_eval.tsv".format(eval_dir, dataset_name), "w", encoding='utf-8') as f:
+                for s in sari_output:
+                    f.write("\t".join(s) + "\n")
 
         print('loss_with_teacher_forcing', np.mean(print_loss_tf))
         return np.mean(print_loss_tf), np.mean(bleu_list), np.mean(sari_list), sys_out

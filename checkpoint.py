@@ -54,7 +54,8 @@ class Checkpoint(object):
         """
         date_time = time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime())
 
-        self._path = os.path.join(experiment_dir, self.CHECKPOINT_DIR_NAME, date_time)
+        self._path = os.path.join(experiment_dir, self.CHECKPOINT_DIR_NAME,
+                                  "{}_{}_{}".format(date_time, self.epoch, self.step))
         path = self._path
 
         if os.path.exists(path):
@@ -102,7 +103,7 @@ class Checkpoint(object):
         #with open(os.path.join(path, cls.OUTPUT_VOCAB_FILE), 'rb') as fin:
         #    output_vocab = dill.load(fin)
         opt = resume_checkpoint['opt']
-        print('the fking model is,', type(model))
+        print('The model is,', type(model))
         return Checkpoint(model=model,
                           opt=opt,
                           epoch=resume_checkpoint['epoch'],

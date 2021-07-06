@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+import os
 import argparse
 import collections
 import logging
@@ -82,7 +83,13 @@ def reweight_global_loss(w_add,w_keep,w_del):
     NLL_weight[DEL_ID] = w_del
     return NLL_weight
 
-def training(edit_net,nepochs, args, vocab, print_every=100, check_every=500):
+
+def training(edit_net, nepochs, args, vocab, print_every=100, check_every=500, test=False):
+    if test:
+        print(args.data_path + 'test.df.filtered.pos')
+        eval_dataset = data.Dataset(args.data_path + 'test.df.filtered.pos')  # load eval dataset
+    else:
+        print(args.data_path + 'val.df.filtered.pos')
     eval_dataset = data.Dataset(args.data_path + 'val.df.filtered.pos') # load eval dataset
     evaluator = Evaluator(loss= nn.NLLLoss(ignore_index=vocab.w2i['PAD'], reduction='none'))
     editnet_optimizer = torch.optim.Adam(edit_net.parameters(),
@@ -167,11 +174,26 @@ def training(edit_net,nepochs, args, vocab, print_every=100, check_every=500):
                 print("checked after %d steps"%i)
 
                 edit_net.train()
+
+    print(edit_net)
     return edit_net
 
 dataset='newsela'
+
+
+def set_seed(seed=0):
+    print("Setting all seeds to stop random..")
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    # random.seed(seed) # not using random now
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+
 def main():
-    torch.manual_seed(233)
+    # torch.manual_seed(233)
+    set_seed(233)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s [INFO] %(message)s')
 
     parser = argparse.ArgumentParser()
@@ -195,12 +217,16 @@ def main():
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--hidden', type=int, default=200)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--device', type=int, default=0,
+    parser.add_argument('--device', type=int, default=1,
                         help='select GPU')
+    parser.add_argument('--test', action='store_true', default=False, dest='test_enabled')
+    parser.add_argument('--run_eval', action='store_true', default=False, dest='run_eval')
+    parser.add_argument('--run_training', action='store_true', default=False, dest='run_training')
 
     #train_file = '/media/vocab_data/yue/TS/editnet_data/%s/train.df.filtered.pos'%dataset
     # test='/media/vocab_data/yue/TS/editnet_data/%s/test.df.pos' % args.dataset
     args = parser.parse_args()
+    print(args)
     torch.cuda.set_device(args.device)
 
             # load vocab-related files and init vocab
@@ -240,11 +266,36 @@ def main():
         print("load edit_net for further training")
         ckpt_path = args.load_model
         ckpt = Checkpoint.load(ckpt_path)
+        print("Epoch: {} | Step: {}".format(ckpt.epoch, ckpt.step))
         edit_net = ckpt.model
         edit_net.cuda()
         edit_net.train()
 
-    training(edit_net, args.epochs, args, vocab)
+    if args.run_eval:
+        print("Running Evaluation..")
+        eval_standalone(edit_net, args, vocab, ckpt)
+    elif args.run_training:
+        print("Running Training..")
+        training(edit_net, args.epochs, args, vocab, test=args.test_enabled)
+    else:
+        print("ERROR: No running mode selected")
+
+
+def eval_standalone(edit_net, args, vocab, ckpt):
+    eval_dataset = data.Dataset(args.data_path + 'test.df.filtered.pos')  # load eval dataset
+    edit_net.eval()
+    evaluator = Evaluator(loss=nn.NLLLoss(ignore_index=vocab.w2i['PAD'], reduction='none'))
+
+    path = args.data_path
+    dataset_name = path[path.rindex("/") + 1:len(path)]
+    val_loss, bleu_score, sari, sys_out = evaluator.evaluate(eval_dataset, vocab, edit_net, args,
+                                                             dataset_name=dataset_name, eval_dir=args.load_model)
+    log_msg = "epoch %d, step %d, Dev loss: %.4f, Bleu score: %.4f, Sari: %.4f \n" \
+              % (ckpt.epoch, ckpt.step, val_loss, bleu_score, sari)
+    print("Output: val_loss: {}, bleu_score: {}, sari:{}"
+          .format(val_loss, bleu_score, sari))
+
+    print(log_msg)
 
 
 if __name__ == '__main__':

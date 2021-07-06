@@ -2,6 +2,8 @@ from __future__ import unicode_literals, print_function, division
 
 import random
 
+random.seed(233)
+
 import numpy as np
 import torch
 import torch.nn as nn

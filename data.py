@@ -2,6 +2,7 @@ from collections import Counter
 
 import glob
 import random
+random.seed(233)
 import struct
 import csv
 import pandas as pd

@@ -35,9 +35,13 @@ def replace_lrb(sent_string):
     return new_sent
 
 
-def process_raw_data(comp_txt, simp_txt):
+def process_raw_data(comp_txt, simp_txt, no_duplicates=False):
     comp_txt = [line.lower().split() for line in comp_txt]
     simp_txt = [line.lower().split() for line in simp_txt]
+
+    if no_duplicates:
+        comp_txt, simp_txt = zip(*[(i[0], i[1]) for i in zip(comp_txt, simp_txt) if i[0] != i[1]])
+
     # df_comp = pd.read_csv('data/%s_comp.csv'%dataset,  sep='\t')
     # df_simp= pd.read_csv('data/%s_simp.csv'%dataset,  sep='\t')
     assert len(comp_txt) == len(simp_txt)
@@ -63,7 +67,7 @@ def process_raw_data(comp_txt, simp_txt):
         pos_sentences = [pos_tag(sent) for sent in src_sentences]
         df['comp_pos_tags'] = pos_sentences
 
-        pos_vocab = data.POSvocab()
+        pos_vocab = data.POSvocab("vocab_data/")
         pos_ids_list = []
         for sent in pos_sentences:
             pos_ids = [pos_vocab.w2i[w[1]] if w[1] in pos_vocab.w2i.keys() else pos_vocab.w2i[UNK] for w in sent]
@@ -113,3 +117,5 @@ def editnet_data_to_editnetID(df,output_path):
                                             'edit_labels','new_edit_ids','comp_pos_tags','comp_pos_ids'])
     outdf.to_pickle(output_path)
     print('saved to %s'%output_path)
+
+    return outdf
